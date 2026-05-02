@@ -17,6 +17,8 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+
     tasks: Mapped[list["Task"]] = relationship("Task", back_populates="user", cascade="all, delete-orphan")  # noqa: F821
     tags: Mapped[list["Tag"]] = relationship("Tag", back_populates="user", cascade="all, delete-orphan")  # noqa: F821
     projects: Mapped[list["Project"]] = relationship("Project", back_populates="user", cascade="all, delete-orphan")  # noqa: F821
+    columns: Mapped[list["Column"]] = relationship("Column", back_populates="user", cascade="all, delete-orphan")  # noqa: F821

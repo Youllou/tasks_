@@ -1,72 +1,70 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from models.task import Tag, Project
+from models.task import Task, Tag
 
 
-class TagRepository:
+class TaskRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def list(self, user_id: str) -> list[Tag]:
-        result = await self.db.execute(
-            select(Tag).where(Tag.user_id == user_id).order_by(Tag.name)
-        )
-        return list(result.scalars())
+    def _with_relations(self):
+        return selectinload(Task.tags)
 
-    async def get_by_id(self, tag_id: str, user_id: str) -> Tag | None:
+    async def get_by_id(self, task_id: str, user_id: str) -> Task | None:
         result = await self.db.execute(
-            select(Tag).where(Tag.id == tag_id, Tag.user_id == user_id)
-        )
-        return result.scalar_one_or_none()
-
-    async def get_by_name(self, name: str, user_id: str) -> Tag | None:
-        result = await self.db.execute(
-            select(Tag).where(Tag.name == name, Tag.user_id == user_id)
+            select(Task)
+            .options(self._with_relations())
+            .where(Task.id == task_id, Task.user_id == user_id)
         )
         return result.scalar_one_or_none()
 
-    async def get_many_by_ids(self, tag_ids: list[str], user_id: str) -> list[Tag]:
-        result = await self.db.execute(
-            select(Tag).where(Tag.id.in_(tag_ids), Tag.user_id == user_id)
+    async def list(
+        self,
+        user_id: str,
+        column_id: str | None = None,
+        tag_name: str | None = None,
+        project_id: str | None = None,
+        search: str | None = None,
+    ) -> list[Task]:
+        query = (
+            select(Task)
+            .options(self._with_relations())
+            .where(Task.user_id == user_id)
         )
-        return list(result.scalars())
+        if column_id:
+            query = query.where(Task.column_id == column_id)
+        if project_id:
+            query = query.where(Task.project_id == project_id)
+        if search:
+            query = query.where(Task.title.ilike(f"%{search}%"))
+        if tag_name:
+            query = query.join(Task.tags).where(Tag.name == tag_name)
 
-    async def create(self, user_id: str, name: str) -> Tag:
-        tag = Tag(user_id=user_id, name=name)
-        self.db.add(tag)
+        query = query.order_by(Task.created_at.desc())
+        result = await self.db.execute(query)
+        return list(result.scalars().unique())
+
+    async def create(self, user_id: str, column_id: str, title: str, **kwargs) -> Task:
+        task = Task(user_id=user_id, column_id=column_id, title=title, **kwargs)
+        self.db.add(task)
         await self.db.flush()
-        await self.db.refresh(tag)
-        return tag
+        await self.db.refresh(task, ["tags"])
+        return task
 
-    async def delete(self, tag: Tag) -> None:
-        await self.db.delete(tag)
+    async def update(self, task: Task, **kwargs) -> Task:
+        for key, value in kwargs.items():
+            setattr(task, key, value)
+        await self.db.flush()
+        await self.db.refresh(task, ["tags"])
+        return task
+
+    async def delete(self, task: Task) -> None:
+        await self.db.delete(task)
         await self.db.flush()
 
-
-class ProjectRepository:
-    def __init__(self, db: AsyncSession):
-        self.db = db
-
-    async def list(self, user_id: str) -> list[Project]:
-        result = await self.db.execute(
-            select(Project).where(Project.user_id == user_id).order_by(Project.name)
-        )
-        return list(result.scalars())
-
-    async def get_by_id(self, project_id: str, user_id: str) -> Project | None:
-        result = await self.db.execute(
-            select(Project).where(Project.id == project_id, Project.user_id == user_id)
-        )
-        return result.scalar_one_or_none()
-
-    async def create(self, user_id: str, name: str) -> Project:
-        project = Project(user_id=user_id, name=name)
-        self.db.add(project)
+    async def set_tags(self, task: Task, tags: list[Tag]) -> None:
+        task.tags = tags
         await self.db.flush()
-        await self.db.refresh(project)
-        return project
-
-    async def delete(self, project: Project) -> None:
-        await self.db.delete(project)
-        await self.db.flush()
+        await self.db.refresh(task, ["tags"])

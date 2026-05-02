@@ -10,6 +10,7 @@ from config import settings
 from database import get_db
 from models.user import User
 from repositories.user_repo import UserRepository
+from repositories.column_repo import ColumnRepository
 
 security = HTTPBearer()
 
@@ -39,22 +40,23 @@ def decode_token(token: str) -> str:
 
 class AuthService:
     def __init__(self, db: AsyncSession):
-        self.repo = UserRepository(db)
+        self.users = UserRepository(db)
+        self.columns = ColumnRepository(db)
 
     async def signup(self, email: str, password: str) -> tuple[str, User]:
-        if await self.repo.get_by_email(email):
+        if await self.users.get_by_email(email):
             raise HTTPException(status_code=400, detail="Email already registered")
-        user = await self.repo.create(email=email, password_hash=hash_password(password))
+        user = await self.users.create(email=email, password_hash=hash_password(password))
+        await self.columns.seed_defaults(user.id)
         return create_access_token(user.id), user
 
     async def login(self, email: str, password: str) -> tuple[str, User]:
-        user = await self.repo.get_by_email(email)
+        user = await self.users.get_by_email(email)
         if not user or not user.password_hash or not verify_password(password, user.password_hash):
             raise HTTPException(status_code=401, detail="Invalid credentials")
         return create_access_token(user.id), user
 
 
-# FastAPI dependency
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db),
