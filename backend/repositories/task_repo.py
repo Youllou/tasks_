@@ -1,6 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+import typing
 
 from models.task import Task, Tag
 
@@ -27,7 +28,7 @@ class TaskRepository:
         tag_name: str | None = None,
         project_id: str | None = None,
         search: str | None = None,
-    ) -> list[Task]:
+    ) -> typing.List[Task]:
         query = (
             select(Task)
             .options(self._with_relations())
@@ -44,7 +45,7 @@ class TaskRepository:
 
         query = query.order_by(Task.created_at.desc())
         result = await self.db.execute(query)
-        return list(result.scalars().unique())
+        return typing.List(result.scalars().unique())
 
     async def create(self, user_id: str, column_id: str, title: str, **kwargs) -> Task:
         task = Task(user_id=user_id, column_id=column_id, title=title, **kwargs)
@@ -64,7 +65,7 @@ class TaskRepository:
         await self.db.delete(task)
         await self.db.flush()
 
-    async def set_tags(self, task: Task, tags: list[Tag]) -> None:
+    async def set_tags(self, task: Task, tags: typing.List[Tag]) -> None:
         task.tags = tags
         await self.db.flush()
         await self.db.refresh(task, ["tags"])
