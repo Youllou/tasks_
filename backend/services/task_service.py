@@ -28,7 +28,8 @@ class TaskService:
         return inbox.id
 
     async def list_tasks(self, user_id: str, column_id=None, tag_name=None, project_id=None, search=None) -> list[Task]:
-        return await self.tasks.list(user_id, column_id=column_id, tag_name=tag_name, project_id=project_id, search=search)
+        return await self.tasks.get_list(user_id, column_id=column_id, tag_name=tag_name, project_id=project_id,
+                                         search=search)
 
     async def create_task(self, user_id: str, data: TaskCreate) -> Task:
         if data.project_id:
@@ -86,7 +87,7 @@ class TagService:
         self.repo = TagRepository(db)
 
     async def list_tags(self, user_id: str):
-        return await self.repo.list(user_id)
+        return await self.repo.get_list(user_id)
 
     async def create_tag(self, user_id: str, name: str):
         if await self.repo.get_by_name(name, user_id):

@@ -21,14 +21,14 @@ class TaskRepository:
         )
         return result.scalar_one_or_none()
 
-    async def list(
+    async def get_list(
         self,
         user_id: str,
         column_id: str | None = None,
         tag_name: str | None = None,
         project_id: str | None = None,
         search: str | None = None,
-    ) -> typing.List[Task]:
+    ) -> list[Task]:
         query = (
             select(Task)
             .options(self._with_relations())
@@ -45,7 +45,7 @@ class TaskRepository:
 
         query = query.order_by(Task.created_at.desc())
         result = await self.db.execute(query)
-        return typing.List(result.scalars().unique())
+        return list(result.scalars().unique())
 
     async def create(self, user_id: str, column_id: str, title: str, **kwargs) -> Task:
         task = Task(user_id=user_id, column_id=column_id, title=title, **kwargs)

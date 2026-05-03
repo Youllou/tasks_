@@ -11,7 +11,7 @@ class ColumnService:
         self.repo = ColumnRepository(db)
 
     async def list_columns(self, user_id: str) -> list[Column]:
-        return await self.repo.list(user_id)
+        return await self.repo.get_list(user_id)
 
     async def create_column(self, user_id: str, data: ColumnCreate) -> Column:
         return await self.repo.create(
