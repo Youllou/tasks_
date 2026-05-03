@@ -1,6 +1,4 @@
-import typing
-
-from sqlalchemy import select, delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -25,7 +23,7 @@ class TaskRepository:
     async def list(
         self,
         user_id: str,
-        status: str | None = None,
+        column_id: str | None = None,
         tag_name: str | None = None,
         project_id: str | None = None,
         search: str | None = None,
@@ -35,8 +33,8 @@ class TaskRepository:
             .options(self._with_relations())
             .where(Task.user_id == user_id)
         )
-        if status:
-            query = query.where(Task.status == status)
+        if column_id:
+            query = query.where(Task.column_id == column_id)  
         if project_id:
             query = query.where(Task.project_id == project_id)
         if search:
@@ -44,12 +42,12 @@ class TaskRepository:
         if tag_name:
             query = query.join(Task.tags).where(Tag.name == tag_name)
 
-        query = query.order_by(Task.due_date.desc())
+        query = query.order_by(Task.created_at.desc())
         result = await self.db.execute(query)
         return list(result.scalars().unique())
 
-    async def create(self, user_id: str, title: str, **kwargs) -> Task:
-        task = Task(user_id=user_id, title=title, **kwargs)
+    async def create(self, user_id: str, column_id: str, title: str, **kwargs) -> Task:
+        task = Task(user_id=user_id, column_id=column_id, title=title, **kwargs)
         self.db.add(task)
         await self.db.flush()
         await self.db.refresh(task, ["tags"])
@@ -66,7 +64,7 @@ class TaskRepository:
         await self.db.delete(task)
         await self.db.flush()
 
-    async def set_tags(self, task: Task, tags: typing.List[Tag]) -> None:
+    async def set_tags(self, task: Task, tags: list[Tag]) -> None:
         task.tags = tags
         await self.db.flush()
         await self.db.refresh(task, ["tags"])
