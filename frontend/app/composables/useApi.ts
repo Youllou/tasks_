@@ -15,18 +15,24 @@ export const useApi = () => {
             headers['Authorization'] = `Bearer ${token.value}`
         }
 
-        const res = await fetch(`${config.public.apiBase}${path}`, {
-            ...options,
-            headers,
-        })
+        try {
+            const res = await fetch(`${config.public.apiBase}${path}`, {
+                ...options,
+                headers,
+            })
 
-        if (!res.ok) {
-            const err = await res.json().catch(() => ({ detail: 'Request failed' }))
-            throw new Error(err.detail || 'Request failed')
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }))
+                const errorMsg = err.detail || `Request failed with status ${res.status}`
+                throw new Error(errorMsg)
+            }
+
+            if (res.status === 204) return undefined as T
+            return res.json()
+        } catch (error: any) {
+            // Re-throw with better error message
+            throw new Error(error.message || 'Network error or server unavailable')
         }
-
-        if (res.status === 204) return undefined as T
-        return res.json()
     }
 
     return {

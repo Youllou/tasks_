@@ -26,3 +26,9 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
 @router.get("/me", response_model=UserOut)
 async def me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.get("/verify", response_model=UserOut)
+async def verify_token(current_user: User = Depends(get_current_user)):
+    """Verify that the provided token is valid and return the current user."""
+    return current_user

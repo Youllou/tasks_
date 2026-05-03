@@ -107,7 +107,7 @@ export const useTaskStore = defineStore('tasks', () => {
         return project
     }
 
-    // Tasks grouped by column_id, ordered by column position
+    // Tasks grouped by column_id, ordered by column position, sorted by due date
     const tasksByColumn = computed(() => {
         const groups: Record<string, Task[]> = {}
         for (const col of columns.value) {
@@ -118,10 +118,37 @@ export const useTaskStore = defineStore('tasks', () => {
                 groups[task.column_id].push(task)
             }
         }
+
+        // Sort each column's tasks by due date (earliest first, tasks without due date last)
+        for (const colId in groups) {
+            groups[colId].sort((a, b) => {
+                // Tasks with no due date go to the bottom
+                if (!a.due_date && !b.due_date) return 0
+                if (!a.due_date) return 1
+                if (!b.due_date) return -1
+
+                // Sort by due date ascending (earliest first)
+                return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+            })
+        }
+
         return groups
     })
 
     const inboxColumn = computed(() => columns.value.find(c => c.is_inbox) ?? null)
+
+    // Sorted tasks for flat list view (when filtering)
+    const sortedTasks = computed(() => {
+        return [...tasks.value].sort((a, b) => {
+            // Tasks with no due date go to the bottom
+            if (!a.due_date && !b.due_date) return 0
+            if (!a.due_date) return 1
+            if (!b.due_date) return -1
+
+            // Sort by due date ascending (earliest first)
+            return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+        })
+    })
 
     const hasFilters = computed(() =>
         !!filterColumnId.value || !!filterTag.value || !!filterProject.value || !!searchQuery.value
@@ -137,7 +164,7 @@ export const useTaskStore = defineStore('tasks', () => {
     return {
         tasks, columns, tags, projects, loading, error,
         filterColumnId, filterTag, filterProject, searchQuery,
-        tasksByColumn, inboxColumn, hasFilters,
+        tasksByColumn, sortedTasks, inboxColumn, hasFilters,
         fetchTasks, fetchColumns, fetchTags, fetchProjects,
         createTask, updateTask, deleteTask,
         createTag, createProject,
