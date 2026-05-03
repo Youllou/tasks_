@@ -15,9 +15,10 @@ app = FastAPI(title="Tasks_ API", version="1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[getenv("CORS_ORIGIN", "127.0.0.1")],
+    allow_origins=[getenv("CORS_ORIGIN", "http://localhost:3000")],
     allow_credentials=True,
     allow_methods=["*"],
+    allow_headers=["*"],  # ← needed for Authorization header
 )
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])

@@ -41,25 +41,43 @@ def upgrade() -> None:
     )
     op.create_index("ix_projects_user_id", "projects", ["user_id"])
 
-    op.execute("CREATE TYPE task_status AS ENUM ('inbox', 'backlog', 'todo', 'done')")
+    op.create_table(
+        "columns",
+        sa.Column("id", sa.String(), nullable=False),
+        sa.Column("user_id", sa.String(), nullable=False),
+        sa.Column("name", sa.String(100), nullable=False),
+        sa.Column("color", sa.String(20), nullable=False),
+        sa.Column("position", sa.Integer(), nullable=False),
+        sa.Column("is_inbox", sa.Boolean(), nullable=False, server_default="false"),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index("ix_columns_user_id", "columns", ["user_id"])
+    op.execute("""
+        CREATE UNIQUE INDEX uix_columns_user_inbox
+        ON columns (user_id)
+        WHERE is_inbox = true
+    """)
 
     op.create_table(
         "tasks",
         sa.Column("id", sa.String(), nullable=False),
         sa.Column("user_id", sa.String(), nullable=False),
+        sa.Column("column_id", sa.String(), nullable=False),
         sa.Column("project_id", sa.String(), nullable=True),
         sa.Column("title", sa.String(512), nullable=False),
         sa.Column("description", sa.String(), nullable=True),
-        sa.Column("status", sa.Enum("inbox", "backlog", "todo", "done", name="task_status"), nullable=False, server_default="inbox"),
         sa.Column("due_date", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["column_id"], ["columns.id"], ondelete="RESTRICT"),
         sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_tasks_user_id", "tasks", ["user_id"])
-    op.create_index("ix_tasks_status", "tasks", ["status"])
+    op.create_index("ix_tasks_column_id", "tasks", ["column_id"])
     op.create_index("ix_tasks_project_id", "tasks", ["project_id"])
 
     op.create_table(
@@ -86,7 +104,14 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_table("task_tags")
     op.drop_table("tags")
+    op.drop_index("ix_tasks_column_id", table_name="tasks")
+    op.drop_index("ix_tasks_user_id", table_name="tasks")
+    op.drop_index("ix_tasks_project_id", table_name="tasks")
     op.drop_table("tasks")
-    op.execute("DROP TYPE task_status")
+    op.execute("DROP INDEX IF EXISTS uix_columns_user_inbox")
+    op.drop_index("ix_columns_user_id", table_name="columns")
+    op.drop_table("columns")
+    op.drop_index("ix_projects_user_id", table_name="projects")
     op.drop_table("projects")
+    op.drop_index("ix_users_email", table_name="users")
     op.drop_table("users")

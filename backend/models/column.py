@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
@@ -26,7 +26,11 @@ class Column(Base):
     tasks: Mapped[list["Task"]] = relationship("Task", back_populates="column")  # noqa: F821
 
     __table_args__ = (
-        # only one inbox column per user
-        UniqueConstraint("user_id", "is_inbox", name="uq_columns_user_inbox",
-                         postgresql_where="is_inbox = true"),
+        # Partial unique index: enforces only one inbox column per user at the DB level
+        Index(
+            "uix_columns_user_inbox",
+            "user_id",
+            unique=True,
+            postgresql_where=text("is_inbox = true"),
+        ),
     )

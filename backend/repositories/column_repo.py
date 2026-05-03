@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
+import typing
 from models.column import Column
 
 
@@ -43,7 +43,7 @@ class ColumnRepository:
         await self.db.refresh(column)
         return column
 
-    async def seed_defaults(self, user_id: str) -> list[Column]:
+    async def seed_defaults(self, user_id: str) -> typing.List[Column]:
         """Create the 4 default columns for a new user."""
         columns = []
         for col in DEFAULT_COLUMNS:

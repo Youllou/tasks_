@@ -1,3 +1,5 @@
+import typing
+
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -64,7 +66,7 @@ class TaskRepository:
         await self.db.delete(task)
         await self.db.flush()
 
-    async def set_tags(self, task: Task, tags: list[Tag]) -> None:
+    async def set_tags(self, task: Task, tags: typing.List[Tag]) -> None:
         task.tags = tags
         await self.db.flush()
         await self.db.refresh(task, ["tags"])

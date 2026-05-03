@@ -5,14 +5,22 @@ export interface Tag {
     name: string
 }
 
+export interface Column {
+    id: string
+    name: string
+    color: string
+    position: number
+    is_inbox: boolean
+}
+
 export interface Task {
     id: string
     user_id: string
-    title: string
-        description?: string
-    status: 'inbox' | 'backlog' | 'todo' | 'done'
-    due_date?: string
+    column_id: string
     project_id?: string
+    title: string
+    description?: string
+    due_date?: string
     tags: Tag[]
     created_at: string
     updated_at: string
@@ -25,13 +33,14 @@ export interface Project {
 
 export const useTaskStore = defineStore('tasks', () => {
     const tasks = ref<Task[]>([])
+    const columns = ref<Column[]>([])
     const tags = ref<Tag[]>([])
     const projects = ref<Project[]>([])
     const loading = ref(false)
     const error = ref<string | null>(null)
 
     // Filters
-    const filterStatus = ref<string | null>(null)
+    const filterColumnId = ref<string | null>(null)
     const filterTag = ref<string | null>(null)
     const filterProject = ref<string | null>(null)
     const searchQuery = ref('')
@@ -43,7 +52,7 @@ export const useTaskStore = defineStore('tasks', () => {
         error.value = null
         try {
             const params = new URLSearchParams()
-            if (filterStatus.value) params.set('status', filterStatus.value)
+            if (filterColumnId.value) params.set('column_id', filterColumnId.value)
             if (filterTag.value) params.set('tag', filterTag.value)
             if (filterProject.value) params.set('project_id', filterProject.value)
             if (searchQuery.value) params.set('search', searchQuery.value)
@@ -54,6 +63,10 @@ export const useTaskStore = defineStore('tasks', () => {
         } finally {
             loading.value = false
         }
+    }
+
+    const fetchColumns = async () => {
+        columns.value = await api.get<Column[]>('/columns')
     }
 
     const fetchTags = async () => {
@@ -94,25 +107,40 @@ export const useTaskStore = defineStore('tasks', () => {
         return project
     }
 
-    const tasksByStatus = computed(() => {
-        const groups: Record<string, Task[]> = {
-            inbox: [],
-            backlog: [],
-            todo: [],
-            done: [],
+    // Tasks grouped by column_id, ordered by column position
+    const tasksByColumn = computed(() => {
+        const groups: Record<string, Task[]> = {}
+        for (const col of columns.value) {
+            groups[col.id] = []
         }
         for (const task of tasks.value) {
-            groups[task.status]?.push(task)
+            if (groups[task.column_id]) {
+                groups[task.column_id].push(task)
+            }
         }
         return groups
     })
 
+    const inboxColumn = computed(() => columns.value.find(c => c.is_inbox) ?? null)
+
+    const hasFilters = computed(() =>
+        !!filterColumnId.value || !!filterTag.value || !!filterProject.value || !!searchQuery.value
+    )
+
+    const clearFilters = () => {
+        filterColumnId.value = null
+        filterTag.value = null
+        filterProject.value = null
+        searchQuery.value = ''
+    }
+
     return {
-        tasks, tags, projects, loading, error,
-        filterStatus, filterTag, filterProject, searchQuery,
-        tasksByStatus,
-        fetchTasks, fetchTags, fetchProjects,
+        tasks, columns, tags, projects, loading, error,
+        filterColumnId, filterTag, filterProject, searchQuery,
+        tasksByColumn, inboxColumn, hasFilters,
+        fetchTasks, fetchColumns, fetchTags, fetchProjects,
         createTask, updateTask, deleteTask,
         createTag, createProject,
+        clearFilters,
     }
 })
