@@ -12,11 +12,17 @@
   "dependencies": {
     "@emnapi/core": "^1.10.0",
     "@emnapi/runtime": "^1.10.0",
+    "@nuxtjs/robots": "^6.0.8",
+    "@nuxtjs/sitemap": "^8.0.15",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@pinia/nuxt": "^0.11.3",
+    "@takumi-rs/core": "^1.1.2",
+    "@unhead/vue": "^3.1.0",
     "@vueuse/nuxt": "^14.3.0",
     "nuxt": "^4.4.4",
+    "nuxt-og-image": "^6.4.11",
     "pinia": "^3.0.4",
+    "unstorage": "^1.17.5",
     "vue": "^3.5.33",
     "vue-router": "^5.0.6"
   }
