@@ -1,4 +1,4 @@
-name: Call reusable docker build
+name: Frontend docker build
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
     with:
       container-name: tasks_frontend
       context: ./frontend
-      file: Dockerfile
+      file: ./frontend/Dockerfile
       branch: main
     secrets:
       GHCR_DEPLOY_TOKEN: ${{ secrets.GHCR_DEPLOY_TOKEN }}

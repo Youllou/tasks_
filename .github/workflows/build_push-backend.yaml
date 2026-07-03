@@ -1,4 +1,4 @@
-name: Call reusable docker build
+name: Backend docker build
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
     with:
       container-name: tasks_backend
       context: ./backend
-      file: Dockerfile
+      file: ./backend/Dockerfile
       branch: main
     secrets:
       GHCR_DEPLOY_TOKEN: ${{ secrets.GHCR_DEPLOY_TOKEN }}
